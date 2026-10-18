@@ -7,7 +7,7 @@ services:
       - "1883:1883"
   consumer:
     build: .
-    command: python -u app/consumer.py
+    command: python -u consumer.py
     environment:
       MQTT_HOST: mqtt
     volumes:
@@ -17,7 +17,7 @@ services:
     restart: unless-stopped
   replay:
     build: .
-    command: python -u app/replay.py
+    command: python -u  replay.py
     environment:
       MQTT_HOST: mqtt
     depends_on:
@@ -25,7 +25,7 @@ services:
     restart: unless-stopped
   dashboard:
     build: .
-    command: streamlit run app/dashboard.py --server.address=0.0.0.0 --server.port=8501
+    command: streamlit run dashboard.py --server.address=0.0.0.0 --server.port=8501
     ports:
       - "8501:8501"
     volumes:
