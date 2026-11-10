@@ -71,3 +71,103 @@ Replay-ul datelor istorice nu reproduce toate proprietățile unei rețele radio
 Singh, A. P. & Chaudhari, S. (2018). *Room Occupancy Estimation*. UCI Machine Learning Repository. https://doi.org/10.24432/C5P605
 
 Model de structură: exemplul Smart Greenhouse Monitoring furnizat la curs; întrebarea RQ1 și metodologia experimentală provin din documentul `RQs(1).pdf` al disciplinei.
+## 13. Implementare practică – Full Chain IoT, Edge și Cloud
+
+### 13.1. Descriere
+
+Pe lângă prototipul Docker bazat pe datasetul UCI, a fost realizată o implementare practică independentă, în Python, pe Windows.
+
+Această implementare demonstrează comunicarea completă dintre senzori, Gateway, Backend, baza de date și interfața grafică.
+
+**Arhitectură:**
+
+Senzori virtuali → MQTT Mosquitto → Gateway Edge → Backend → SQLite → Frontend Streamlit
+
+### 13.2. Componente
+
+- `senzor.py` – simulează trei tipuri de senzori: CO₂, temperatură și luminozitate.
+- `gateway.py` – recepționează măsurătorile MQTT și detectează spike-uri, date lipsă și depășirea pragului CO₂.
+- `backend.py` – salvează măsurătorile în SQLite și detectează tendințele crescătoare (drift).
+- `test_drift.py` – transmite o serie controlată de valori CO₂ pentru testarea drift-ului.
+- `dashboard.py` – afișează măsurătorile și graficele într-o interfață web Streamlit.
+- `sensors.sqlite3` – baza de date generată local în timpul rulării; nu este necesară încărcarea pe GitHub.
+
+### 13.3. Detectarea anomaliilor
+
+**Edge – Spikes:** variațiile absolute ale CO₂ mai mari de 700 ppm față de măsurătoarea precedentă sunt marcate ca spike.
+
+**Edge – Missing Data:** Gateway-ul compară numerele de secvență. În testul demonstrativ, trecerea de la `seq=28` la `seq=10000` a evidențiat 9.971 de secvențe omise intenționat.
+
+**Edge – Alertă CO₂:** valorile mai mari de 1.800 ppm generează o alertă.
+
+**Backend / Cloud – Drift:** ultimele cinci măsurători CO₂ sunt analizate pentru identificarea unei creșteri continue de minimum 400 ppm.
+
+Seria experimentală `600 → 750 → 900 → 1050 → 1200 ppm` a fost detectată și înregistrată cu `drift=1`.
+
+Componenta Cloud este simulată prin Backend-ul executat local. Algoritmii utilizați în această etapă sunt bazați pe reguli, nu pe un model AI antrenat.
+
+### 13.4. Rularea aplicației pe Windows
+
+Se instalează Python, Eclipse Mosquitto și bibliotecile necesare:
+
+```bat
+python -m pip install paho-mqtt pandas streamlit
+```
+
+Brokerul MQTT trebuie să fie pornit pe `127.0.0.1:1883`.
+
+Din folderul proiectului, în ferestre CMD separate, se execută:
+
+```bat
+python gateway.py
+python backend.py
+python senzor.py co2
+python senzor.py temperatura
+python senzor.py lumina
+```
+
+Pentru interfața grafică:
+
+```bat
+python -m streamlit run dashboard.py
+```
+
+Dashboard-ul poate fi accesat la:
+
+`http://localhost:8501`
+
+Pentru testarea drift-ului, se poate executa separat:
+
+```bat
+python test_drift.py
+```
+
+### 13.5. Interfața grafică și rezultate
+
+Dashboard-ul Streamlit afișează grafice pentru:
+
+- CO₂, exprimat în ppm;
+- Temperatură, exprimată în °C;
+- Luminozitate, exprimată în lux.
+
+Sunt afișate și numărul măsurătorilor, alertele Edge, spike-urile, drift-ul și ultimele înregistrări din SQLite.
+
+Graficele sunt actualizate automat la fiecare trei secunde.
+
+La momentul capturii de ecran au fost afișate 300 de măsurători, 18 alerte Edge, 14 spike-uri și 3 detecții drift. Aceste valori se referă la fereastra de date afișată, nu la totalul istoric.
+
+### 13.6. Documentație experimentală
+
+Au fost realizate următoarele rapoarte PDF:
+
+- `Cerinta_2_Senzori_Gateway.pdf` – transmiterea datelor de la mai multe procese senzor către Gateway.
+- `Cerinta_3_Gateway_Backend_SQLite.pdf` – retransmiterea și stocarea datelor.
+- `Cerinta_4_Detectie_Anomalii_Edge_CO2.pdf` – detectarea valorilor CO₂ anormale.
+- `Raport_Edge_Cloud_Spikes_Date_Lipsa_Drift.pdf` – detectarea datelor lipsă, spike-urilor și drift-ului.
+- `Raport_Full_Chain_Senzor_Frontend_Grafice.pdf` – demonstrarea întregului lanț IoT și a graficelor Streamlit.
+
+### 13.7. Concluzie
+
+Implementarea practică demonstrează funcționarea întregului lanț de procesare IoT, de la generarea măsurătorilor până la stocarea, analiza și vizualizarea lor.
+
+Comparația experimentală completă între arhitecturile Edge, Cloud și Hybrid, inclusiv evaluarea latenței și a performanței unui model AI, rămâne o etapă viitoare a proiectului.
